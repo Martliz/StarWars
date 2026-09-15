@@ -2,6 +2,9 @@ let counters = { primary: 0, secondary: 0, tertiary: 0 };
 let allCharacters = [];
 let loadingStatus = 'idle'; // 'loading', 'success', 'error'
 
+// Base URL para obtener imágenes de personajes
+const STAR_WARS_IMAGE_BASE = 'https://starwars-visualguide.com/assets/img/characters/';
+
 // Función para obtener los personajes con reintentos
 async function fetchStarWarsCharacters(retries = 3) {
   try {
@@ -24,7 +27,18 @@ async function fetchStarWarsCharacters(retries = 3) {
         }
 
         const data = await response.json();
-        allData = allData.concat(data.results);
+        
+        // Enriquecer datos con URL de imagen
+        const charactersWithImages = data.results.map((char, index) => {
+          // Extraer ID del personaje de la URL
+          const characterId = char.url.match(/\/people\/(\d+)\//)?.[1];
+          return {
+            ...char,
+            image: characterId ? `${STAR_WARS_IMAGE_BASE}${characterId}.jpg` : null
+          };
+        });
+        
+        allData = allData.concat(charactersWithImages);
         nextUrl = data.next;
         retryCount = 0; // Reset retry counter en éxito
 
@@ -40,7 +54,7 @@ async function fetchStarWarsCharacters(retries = 3) {
 
     allCharacters = allData;
     loadingStatus = 'success';
-    console.log(`✅ Se cargaron ${allCharacters.length} personajes`);
+    console.log(`✅ Se cargaron ${allCharacters.length} personajes con imágenes`);
     updateLoadingUI('success');
     return allCharacters;
 
@@ -118,9 +132,15 @@ async function handleCardClick(category) {
     circleColor = 'blue';
   }
 
+  // ✅ NUEVO: Incluir imagen del personaje
+  const imageHTML = character.image ? 
+    `<img src="${character.image}" alt="${character.name}" class="character-image" onerror="this.src='https://via.placeholder.com/80?text=Sin+Imagen'" />` :
+    `<img src="https://via.placeholder.com/80?text=Sin+Imagen" alt="${character.name}" class="character-image" />`;
+
   subCard.innerHTML = `
     <div class="card-body d-flex">
       <div class="circle" style="background-color: ${circleColor};"></div>
+      ${imageHTML}
       <div class="ml-3">
         <h5 class="card-title">${character.name}</h5>
         <p class="card-text">Altura: ${character.height} cm</p>
